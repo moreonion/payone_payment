@@ -1,0 +1,11 @@
+name = PayONE payment integration
+description = Credit card payments via PayONE.
+core = 7.x
+php = 5.6
+
+dependencies[] = libraries
+dependencies[] = payment (>= 7.x-1.10)
+dependencies[] = payment_context
+dependencies[] = payment_forms
+dependencies[] = webform_paymethod_select
+dependencies[] = xautoload (>= 7.x-5.0)
