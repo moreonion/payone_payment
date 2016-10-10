@@ -16,6 +16,86 @@ class CreditCardController extends \PaymentMethodController {
     ],
   ];
 
+  static protected $hash_keys = [
+    'access_aboperiod',
+    'access_aboprice',
+    'access_canceltime',
+    'accesscode',
+    'access_expiretime',
+    'accessname',
+    'access_period',
+    'access_price',
+    'access_starttime',
+    'access_vat',
+    'addresschecktype',
+    'aid',
+    'amount',
+    'amount_recurring',
+    'amount_trail',
+    'api_version',
+    'backurl',
+    'booking_date',
+    'checktype',
+    'clearingtype',
+    'consumerscoretype',
+    'currency',
+    'customerid',
+    'de_recurring[x]',
+    'de_trail[x]',
+    'de[x]',
+    'document_date',
+    'due_time',
+    'eci',
+    'ecommercemode',
+    'encoding',
+    'errorurl',
+    'exiturl',
+    'getusertoken',
+    'id_recurring[x]',
+    'id_trail[x]',
+    'id[x]',
+    'invoiceappendix',
+    'invoice_deliverydate',
+    'invoice_deliveryenddate',
+    'invoice_deliverymode',
+    'invoiceid',
+    'it[x]',
+    'mandate_identification',
+    'mid',
+    'mode',
+    'narrative_text',
+    'no_recurring[x]',
+    'no_trail[x]',
+    'no[x]',
+    'param',
+    'period_length_recurring',
+    'period_length_trail',
+    'period_unit_recurring',
+    'period_unit_trail',
+    'portalid',
+    'productid',
+    'pr_recurring[x]',
+    'pr_trail[x]',
+    'pr[x]',
+    'reference',
+    'request',
+    'responsetype',
+    'settleaccount',
+    'settleperiod',
+    'settletime',
+    'storecarddata',
+    'successurl',
+    'ti_recurring[x]',
+    'ti_trail[x]',
+    'ti[x]',
+    'userid',
+    'vaccountname',
+    'va_recurring[x]',
+    'va_trail[x]',
+    'va[x]',
+    'vreference',
+  ];
+
   public function __construct() {
     $this->title = t('PayONE Credit Card');
     $this->form = new CreditCardForm();
@@ -98,13 +178,13 @@ class CreditCardController extends \PaymentMethodController {
   public function configurationForm(array $element, array &$form_state) {
     $cd = drupal_array_merge_deep($this->controller_data_defaults, $form_state['payment_method']->controller_data);
 
-    $form['credentials'] = [
+    $element['credentials'] = [
       '#type' => 'fieldset',
       '#title' => t('API access'),
       '#description' => t("You can create, view and edit the API access using the PayOne Merchant Interface (Configuration - Payment Portals)."),
     ];
 
-    $form['credentials']['mid'] = [
+    $element['credentials']['mid'] = [
       '#type' => 'textfield',
       '#title' => t('Merchant ID'),
       '#description' => t('The Merchant ID is a 5 to 6 digit number.'),
@@ -112,7 +192,7 @@ class CreditCardController extends \PaymentMethodController {
       '#default_value' => $cd['mid'],
     ];
 
-    $form['credentials']['portalid'] = [
+    $element['credentials  ']['portalid'] = [
       '#type' => 'textfield',
       '#title' => t('Portal ID'),
       '#description' => t('The Portal ID is a 7 digit number.'),
@@ -120,24 +200,32 @@ class CreditCardController extends \PaymentMethodController {
       '#default_value' => $cd['portalid'],
     ];
 
-    $form['credentials']['api_key'] = [
+    $element['credentials']['aid'] = [
+      '#type' => 'textfield',
+      '#title' => t('Account ID'),
+      '#description' => t('The Account ID is a 6 digit number.'),
+      '#required' => TRUE,
+      '#default_value' => $cd['aid'],
+    ];
+
+    $element['credentials']['api_key'] = [
       '#type' => 'textfield',
       '#title' => t('Key'),
       '#required' => true,
       '#default_value' => $cd['api_key'],
     ];
 
-    $form['credentials']['live'] = [
+    $element['credentials']['live'] = [
       '#type' => 'radios',
       '#title' => 'Mode',
       '#options' => [
         'test' => t('Test mode'),
         'live' => t('Live'),
       ],
-      '#default_value' => $cd['live'] ? 'live' : 'test',
+      '#default_value' => !empty($cd['live']) ? 'live' : 'test',
     ];
 
-    $form['config']['field_map'] = array(
+    $element['config']['field_map'] = array(
       '#type' => 'fieldset',
       '#title' => t('Personal data mapping'),
       '#description' => t('This setting allows you to map data from the payment context to payone fields. If data is found for one of the mapped fields it will be transferred to payone. Use a comma to separate multiple field keys.'),
@@ -146,14 +234,14 @@ class CreditCardController extends \PaymentMethodController {
     $map = $cd['config']['field_map'];
     foreach (CreditCardForm::extraDataFields() as $name => $field) {
       $default = implode(', ', isset($map[$name]) ? $map[$name] : array());
-      $form['config']['field_map'][$name] = array(
+      $element['config']['field_map'][$name] = array(
         '#type' => 'textfield',
         '#title' => $field['#title'],
         '#default_value' => $default,
       );
     }
 
-    return $form;
+    return $element;
   }
 
   private function validateNumeric(&$value, $min, $max) {
@@ -174,6 +262,9 @@ class CreditCardController extends \PaymentMethodController {
       form_error($element['credentials']['portalid'], t('Please enter a valid Portal ID. It must be a 7 digit number.'));
     }
 
+    if (!$this->validateNumeric($cd['credentials']['aid'], 0, 6)) {
+      form_error($element['credentials']['aid'], t('Please enter a valid Account ID. It must be a number with up to 6 digits.'));
+    }
 
     $cd += $cd['credentials'];
     unset($cd['credentials']);
@@ -185,6 +276,41 @@ class CreditCardController extends \PaymentMethodController {
     // TODO: Make a test API call to verify the configuration.
 
     $form_state['payment_method']->controller_data = $cd;
+  }
+
+  protected function hmacSign($data, $cd) {
+    $hash_string = '';
+
+    foreach (self::$hash_keys as $k) {
+      if (substr($k, -3) == '[x]') {
+        $k = substr($k, 0, -3);
+        if (isset($data[$k]) && is_array($data[$k])) {
+          ksort($data[$k]);
+          $hash_string .= implode(array_values($data[$k]));
+        }
+      }
+      else {
+        if (isset($data[$k])) {
+          $hash_string .= (string) $data[$k];
+        }
+      }
+    }
+
+    return hash_hmac('sha384', $hash_string, $cd['api_key']);
+  }
+
+  public function parameters($request, $cd, $other_data = []) {
+    $parameters = [
+      'request' => $request,
+      'responsetype' => 'JSON',
+      'mode' => !empty($cd['live']) ? 'live' : 'test',
+      'mid' => $cd['mid'],
+      'aid' => $cd['aid'],
+      'portalid' => $cd['portalid'],
+      'encoding' => 'UTF-8',
+    ] + $other_data;
+    $parameters['hash'] = $this->hmacSign($parameters, $cd);
+    return $parameters;
   }
 
 }

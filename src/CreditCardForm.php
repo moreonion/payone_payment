@@ -6,29 +6,35 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
   const CLIENT_API_ENDPOINT = 'https://secure.pay1.de/client-api/';
 
   static protected $issuers = array(
-    'visa'           => 'Visa',
-    'mastercard'     => 'MasterCard',
-    'amex'           => 'American Express',
-    'jcb'            => 'JCB',
-    'discover'       => 'Discover',
-    'diners_club'    => 'Diners Club',
+    'V' => 'Visa',
+    'M' => 'MasterCard',
+    'A' => 'American Express',
+    'J' => 'JCB',
+    'C' => 'Discover',
+    'D' => 'Diners Club',
   );
   static protected $cvc_label = array(
-    'visa'           => 'CVV2 (Card Verification Value 2)',
-    'amex'           => 'CID (Card Identification Number)',
-    'mastercard'     => 'CVC2 (Card Validation Code 2)',
-    'jcb'            => 'CSC (Card Security Code)',
-    'discover'       => 'CID (Card Identification Number)',
-    'diners_club'    => 'CSC (Card Security Code)',
+    'V' => 'CVV2 (Card Verification Value 2)',
+    'A' => 'CID (Card Identification Number)',
+    'M' => 'CVC2 (Card Validation Code 2)',
+    'J' => 'CSC (Card Security Code)',
+    'C' => 'CID (Card Identification Number)',
+    'D' => 'CSC (Card Security Code)',
   );
 
   public function getForm(array &$form, array &$form_state, \Payment $payment) {
     parent::getForm($form, $form_state, $payment);
+
+    $form['holder'] = [
+      '#type' => 'textfield',
+      '#title' => t('Card holder'),
+      '#weight' => -1,
+    ];
+
     $method = &$payment->method;
 
-    $settings['payone_payment'][$method->pmid] = array(
-      'public_key' => $method->controller_data['public_key'],
-    );
+    $params = $method->controller->parameters('creditcardcheck', $method->controller_data);
+    $settings['payone_payment'][$method->pmid] = $params;
     drupal_add_js($settings, 'setting');
     drupal_add_js(
       drupal_get_path('module', 'payone_payment') . '/payone.js',
@@ -36,26 +42,10 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
     );
     drupal_add_js('https://secure.pay1.de/client-api/js/ajax.js', 'external');
 
-    $form['payone_payment_token'] = array(
+    $form['payone_pseudocardpan'] = array(
       '#type' => 'hidden',
-      '#attributes' => array('class' => array('payone-payment-token')),
+      '#attributes' => array('class' => array('payone-pseudocardpan')),
     );
-
-    $ed = array(
-      '#type' => 'container',
-      '#attributes' => array('class' => array('payone-extra-data')),
-    ) + $this->mappedFields($payment);
-
-    // Stripe does only use the name attribute instead of first_name / last_name.
-    if (!isset($ed['name']) && isset($ed['first_name']) && isset($ed['last_name'])) {
-      $ed['name'] = $ed['first_name'];
-      $ed['name']['#value'] .= ' ' . $ed['last_name']['#value'];
-      $ed['name']['#attributes']['data-payone'] = 'name';
-    }
-    unset($ed['first_name']);
-    unset($ed['last_name']);
-
-    $form['extra_data'] = $ed;
   }
 
   public function validateForm(array &$element, array &$form_state, \Payment $payment) {

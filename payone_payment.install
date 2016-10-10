@@ -24,6 +24,12 @@ function payone_payment_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
+      'aid' => [
+        'description' => 'PayOne Sub-Account ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
       'api_key' => [
         'description' => 'Key for the PayOne Portal',
         'type' => 'varchar',
