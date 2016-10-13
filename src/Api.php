@@ -128,7 +128,7 @@ class Api {
   }
 
   public function serverRequest($request, $data) {
-    $params = $this->authParams($request, TRUE);
+    $params = $this->authParams($request, TRUE) + $data;
     $post_data = http_build_query($params);
     $r = drupal_http_request('https://api.pay1.de/post-gateway/', [
       'method' => 'POST',

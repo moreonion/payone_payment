@@ -47,11 +47,34 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
       '#type' => 'hidden',
       '#attributes' => array('class' => array('payone-pseudocardpan')),
     );
+
+    $form['personal_data'] = [
+      '#type' => 'fieldset',
+      '#title' => t('Personal data'),
+      '#weight' => 100,
+    ] + $this->mappedFields($payment);
+
+    // Only display the fieldset if there is fields in it.
+    $all_done = TRUE;
+    foreach (element_children($form['personal_data'], FALSE) as $c) {
+      $e = $form['personal_data'][$c];
+      if (!isset($e['#access']) || $e['#access']) {
+        $all_done = FALSE;
+        break;
+      }
+    }
+    $form['personal_data']['#access'] = !$all_done;
+
+    $p = &$form['personal_data'];
+    if (!empty($p['firstname']['#default_value']) && !empty($p['lastname']['#default_value'])) {
+      $form['holder']['#default_value'] = $p['firstname']['#default_value'] . ' ' . $p['lastname']['#default_value'];
+    }
+
   }
 
   public function validateForm(array &$element, array &$form_state, \Payment $payment) {
     // Stripe takes care of the real validation, client-side.
-    $values = drupal_array_get_nested_value($form_state['values'], $element['#parents']);
+    $values = &drupal_array_get_nested_value($form_state['values'], $element['#parents']);
 
     if (!empty($values['credit_card_number']) || !empty($values['secure_code'])) {
       form_error($element, t('Something went wrong while processing the payment. The site administrator was informed. Please try again later.'));
@@ -65,7 +88,88 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
 
     unset($values['credit_card_number']);
     unset($values['secure_code']);
+
+    $p = &$values['personal_data'];
+    if (empty($p['firstname']) && empty($p['company'])) {
+      form_error($element['personal_data'], t('Either a first name or a company name must be given.'));
+    }
+    // Only pass non-empty values to the API.
+    foreach ($p as $k => $v) {
+      if (!$v) {
+        unset($p[$k]);
+      }
+    }
+
     $payment->method_data = $values;
+
+  }
+
+  protected function mappedFields(\Payment $payment) {
+    $fields = static::extraDataFields();
+    $field_map = $payment->method->controller_data['field_map'];
+    foreach ($fields as $name => &$field) {
+      $map = isset($field_map[$name]) ? $field_map[$name] : array();
+      $has_value = FALSE;
+      foreach ($map as $key) {
+        if ($value = $payment->contextObj->value($key)) {
+          if (!isset($field['#options']) || isset($field['#options'][$value])) {
+            $field['#default_value'] = $value;
+            $has_value = TRUE;
+            break;
+          }
+        }
+      }
+      if (empty($field['#required']) || $has_value) {
+        $field['#access'] = FALSE;
+      }
+    }
+
+    // Show firstname and company fields if both are empty.
+    if (empty($fields['firstname']['#default_value']) && empty($fields['company']['#default_value'])) {
+      unset($field['firstname']['#access']);
+      unset($field['company']['#access']);
+    }
+
+    return $fields;
+  }
+
+  public static function extraDataFields() {
+    $fields = array();
+    $f = array(
+      'salutation' => t('Salutation'),
+      'title' => t('Title'),
+      'firstname' => t('First name'),
+      'lastname' => t('Last name'),
+      'company' => t('Company'),
+      'street' => t('Street number and name'),
+      'addressaddition' => t('Address line 2'),
+      'zip' => t('Postal code'),
+      'city' => t('City'),
+      'state' => t('State'),
+      'country' => t('Country'),
+      'email' => t('Email'),
+      'telephonenumber' => t('Phone number'),
+      'birthday' => t('Day of birth'),
+      'language' => t('Language'),
+      'vatid' => t('VAT identification'),
+      'gender' => t('Gender'),
+    );
+    foreach ($f as $name => $title) {
+      $fields[$name] = array(
+        '#type' => 'textfield',
+        '#title' => $title,
+      );
+    }
+
+    $fields['lastname']['#required'] = TRUE;
+    $fields['country']['#type'] = 'select';
+    $fields['country']['#options'] = country_get_list();
+    $fields['country']['#required'] = TRUE;
+    $fields['gender']['#type'] = 'radios';
+    $fields['gender']['#options'] = ['f' => t('female'), 'm' => t('male')];
+
+
+    return $fields;
   }
 
 }

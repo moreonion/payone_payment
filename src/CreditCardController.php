@@ -9,8 +9,24 @@ class CreditCardController extends \PaymentMethodController {
     'portalid'  => '',
     'api_key' => '',
     'live' => 0,
-    'config' => [
-      'field_map' => [],
+    'field_map' => [
+      'salutation' => ['salutation'],
+      'title' => ['title'],
+      'firstname' => ['first_name'],
+      'lastname' => ['last_name'],
+      'company' => ['company'],
+      'street' => ['street', 'street_address'],
+      'addressaddition' => [],
+      'zip' => ['zip_code', 'postcode'],
+      'city' => ['city'],
+      'state' => ['state'],
+      'country' => ['country'],
+      'email' => ['email'],
+      'telephonenumber' => ['phone_number'],
+      'birthday' => ['date_of_birth'],
+      'language' => ['language'],
+      'vatid' => ['vatid'],
+      'gender' => ['gender'],
     ],
   ];
 
@@ -38,7 +54,7 @@ class CreditCardController extends \PaymentMethodController {
       'amount' => $payment->totalAmount(TRUE),
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
-    ];
+    ] + $payment->method_data['personal_data'];
     $api = Api::fromControllerData($payment->method->controller_data);
     $api->serverRequest('authorization', $data);
   }
@@ -62,7 +78,9 @@ class CreditCardController extends \PaymentMethodController {
         $method = $entities[$data['pmid']];
         unset($data['pmid']);
         $data['config'] = unserialize($data['config']);
-        $method->controller_data = (array) $data;
+        $data['field_map'] = $data['config']['field_map'] + $method->controller->controller_data_defaults['field_map'];
+        unset($data['config']);
+        $method->controller_data = $data;
         $method->controller_data += $method->controller->controller_data_defaults;
       }
     }
@@ -75,6 +93,8 @@ class CreditCardController extends \PaymentMethodController {
     $method->controller_data += $this->controller_data_defaults;
     $data = $method->controller_data;
     $data['pmid'] = $method->pmid;
+    $data['config']['field_map'] = $data['field_map'];
+    unset($data['field_map']);
     $data['config'] = serialize($data['config']);
 
     db_insert('payone_payment_controller_data')
@@ -86,7 +106,9 @@ class CreditCardController extends \PaymentMethodController {
    * Helper for entity_update().
    */
   public function update($method) {
-    $data = $method->controller_data;
+    $data = $method->controller_data += $this->controller_data_defaults;
+    $data['config']['field_map'] = $data['field_map'];
+    unset($data['field_map']);
     $data['config'] = serialize($data['config']);
     db_update('payone_payment_controller_data')
       ->fields($data)
@@ -104,7 +126,9 @@ class CreditCardController extends \PaymentMethodController {
   }
 
   public function configurationForm(array $element, array &$form_state) {
-    $cd = drupal_array_merge_deep($this->controller_data_defaults, $form_state['payment_method']->controller_data);
+    $cd = $form_state['payment_method']->controller_data;
+    $cd += $this->controller_data_defaults;
+    $cd['field_map'] += $this->controller_data_defaults['field_map'];
 
     $element['credentials'] = [
       '#type' => 'fieldset',
@@ -120,7 +144,7 @@ class CreditCardController extends \PaymentMethodController {
       '#default_value' => $cd['mid'],
     ];
 
-    $element['credentials  ']['portalid'] = [
+    $element['credentials']['portalid'] = [
       '#type' => 'textfield',
       '#title' => t('Portal ID'),
       '#description' => t('The Portal ID is a 7 digit number.'),
@@ -153,16 +177,16 @@ class CreditCardController extends \PaymentMethodController {
       '#default_value' => !empty($cd['live']) ? 'live' : 'test',
     ];
 
-    $element['config']['field_map'] = array(
+    $element['field_map'] = array(
       '#type' => 'fieldset',
       '#title' => t('Personal data mapping'),
       '#description' => t('This setting allows you to map data from the payment context to payone fields. If data is found for one of the mapped fields it will be transferred to payone. Use a comma to separate multiple field keys.'),
     );
 
-    $map = $cd['config']['field_map'];
+    $map = $cd['field_map'];
     foreach (CreditCardForm::extraDataFields() as $name => $field) {
       $default = implode(', ', isset($map[$name]) ? $map[$name] : array());
-      $element['config']['field_map'][$name] = array(
+      $element['field_map'][$name] = array(
         '#type' => 'textfield',
         '#title' => $field['#title'],
         '#default_value' => $default,
@@ -179,7 +203,7 @@ class CreditCardController extends \PaymentMethodController {
 
   public function configurationFormValidate(array $element, array &$form_state) {
     $cd = drupal_array_get_nested_value($form_state['values'], $element['#parents']);
-    foreach ($cd['config']['field_map'] as $k => &$v) {
+    foreach ($cd['field_map'] as $k => &$v) {
       $v = array_filter(array_map('trim', explode(',', $v)));
     }
 
