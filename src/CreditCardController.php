@@ -3,8 +3,6 @@
 namespace Drupal\payone_payment;
 
 class CreditCardController extends \PaymentMethodController {
-  const SERVER_API_ENDPOINT = 'https://api.pay1.de/post-gateway/';
-  const API_VERSION = 3.10;
 
   public $controller_data_defaults = [
     'mid' => '',
@@ -14,86 +12,6 @@ class CreditCardController extends \PaymentMethodController {
     'config' => [
       'field_map' => [],
     ],
-  ];
-
-  static protected $hash_keys = [
-    'access_aboperiod',
-    'access_aboprice',
-    'access_canceltime',
-    'accesscode',
-    'access_expiretime',
-    'accessname',
-    'access_period',
-    'access_price',
-    'access_starttime',
-    'access_vat',
-    'addresschecktype',
-    'aid',
-    'amount',
-    'amount_recurring',
-    'amount_trail',
-    'api_version',
-    'backurl',
-    'booking_date',
-    'checktype',
-    'clearingtype',
-    'consumerscoretype',
-    'currency',
-    'customerid',
-    'de_recurring[x]',
-    'de_trail[x]',
-    'de[x]',
-    'document_date',
-    'due_time',
-    'eci',
-    'ecommercemode',
-    'encoding',
-    'errorurl',
-    'exiturl',
-    'getusertoken',
-    'id_recurring[x]',
-    'id_trail[x]',
-    'id[x]',
-    'invoiceappendix',
-    'invoice_deliverydate',
-    'invoice_deliveryenddate',
-    'invoice_deliverymode',
-    'invoiceid',
-    'it[x]',
-    'mandate_identification',
-    'mid',
-    'mode',
-    'narrative_text',
-    'no_recurring[x]',
-    'no_trail[x]',
-    'no[x]',
-    'param',
-    'period_length_recurring',
-    'period_length_trail',
-    'period_unit_recurring',
-    'period_unit_trail',
-    'portalid',
-    'productid',
-    'pr_recurring[x]',
-    'pr_trail[x]',
-    'pr[x]',
-    'reference',
-    'request',
-    'responsetype',
-    'settleaccount',
-    'settleperiod',
-    'settletime',
-    'storecarddata',
-    'successurl',
-    'ti_recurring[x]',
-    'ti_trail[x]',
-    'ti[x]',
-    'userid',
-    'vaccountname',
-    'va_recurring[x]',
-    'va_trail[x]',
-    'va[x]',
-    'vreference',
   ];
 
   public function __construct() {
@@ -113,6 +31,16 @@ class CreditCardController extends \PaymentMethodController {
 
   public function execute(\Payment $payment) {
     $context = &$payment->contextObj;
+
+    $data = [
+      'clearingtype' => 'cc',
+      'reference' => $payment->pid,
+      'amount' => $payment->totalAmount(TRUE),
+      'currency' => $payment->currency_code,
+      'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
+    ];
+    $api = Api::fromControllerData($payment->method->controller_data);
+    $api->serverRequest('authorization', $data);
   }
 
   /**
@@ -276,41 +204,6 @@ class CreditCardController extends \PaymentMethodController {
     // TODO: Make a test API call to verify the configuration.
 
     $form_state['payment_method']->controller_data = $cd;
-  }
-
-  protected function hmacSign($data, $cd) {
-    $hash_string = '';
-
-    foreach (self::$hash_keys as $k) {
-      if (substr($k, -3) == '[x]') {
-        $k = substr($k, 0, -3);
-        if (isset($data[$k]) && is_array($data[$k])) {
-          ksort($data[$k]);
-          $hash_string .= implode(array_values($data[$k]));
-        }
-      }
-      else {
-        if (isset($data[$k])) {
-          $hash_string .= (string) $data[$k];
-        }
-      }
-    }
-
-    return hash_hmac('sha384', $hash_string, $cd['api_key']);
-  }
-
-  public function parameters($request, $cd, $other_data = []) {
-    $parameters = [
-      'request' => $request,
-      'responsetype' => 'JSON',
-      'mode' => !empty($cd['live']) ? 'live' : 'test',
-      'mid' => $cd['mid'],
-      'aid' => $cd['aid'],
-      'portalid' => $cd['portalid'],
-      'encoding' => 'UTF-8',
-    ] + $other_data;
-    $parameters['hash'] = $this->hmacSign($parameters, $cd);
-    return $parameters;
   }
 
 }

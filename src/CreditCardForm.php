@@ -3,7 +3,7 @@
 namespace Drupal\payone_payment;
 
 class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
-  const CLIENT_API_ENDPOINT = 'https://secure.pay1.de/client-api/';
+  const AJAX_JS = 'https://secure.pay1.de/client-api/js/ajax.js';
 
   static protected $issuers = array(
     'V' => 'Visa',
@@ -33,14 +33,15 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
 
     $method = &$payment->method;
 
-    $params = $method->controller->parameters('creditcardcheck', $method->controller_data);
+    $params = Api::fromControllerData($method->controller_data)
+      ->clientParameters('creditcardcheck');
     $settings['payone_payment'][$method->pmid] = $params;
     drupal_add_js($settings, 'setting');
     drupal_add_js(
       drupal_get_path('module', 'payone_payment') . '/payone.js',
       'file'
     );
-    drupal_add_js('https://secure.pay1.de/client-api/js/ajax.js', 'external');
+    drupal_add_js(self::AJAX_JS, 'external');
 
     $form['payone_pseudocardpan'] = array(
       '#type' => 'hidden',
@@ -51,44 +52,20 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
   public function validateForm(array &$element, array &$form_state, \Payment $payment) {
     // Stripe takes care of the real validation, client-side.
     $values = drupal_array_get_nested_value($form_state['values'], $element['#parents']);
-    $payment->method_data['payone_payment_token'] = $values['payone_payment_token'];
+
+    if (!empty($values['credit_card_number']) || !empty($values['secure_code'])) {
+      form_error($element, t('Something went wrong while processing the payment. The site administrator was informed. Please try again later.'));
+      watchdog('payone_payment', 'Credit card data was sent to server. Perhaps something is broken with the payone JavaScript.', [], WATCHDOG_ALERT);
+    }
+
+    if (empty($values['payone_pseudocardpan']) && !empty($payment->method->controller_data['live'])) {
+      form_error($element, t('Something went wrong while processing the payment. The site administrator was informed. Please try again later.'));
+      watchdog('payone_payment', 'Received an empty pseudocardpan.', [], WATCHDOG_ERROR);
+    }
+
+    unset($values['credit_card_number']);
+    unset($values['secure_code']);
+    $payment->method_data = $values;
   }
 
-  protected function mappedFields(\Payment $payment) {
-    $fields = array();
-    $field_map = $payment->method->controller_data['config']['field_map'];
-    foreach (static::extraDataFields() as $name => $field) {
-      $map = isset($field_map[$name]) ? $field_map[$name] : array();
-      foreach ($map as $key) {
-        if ($value = $payment->contextObj->value($key)) {
-          $field['#value'] = $value;
-          $fields[$name] = $field;
-        }
-      }
-    }
-    return $fields;
-  }
-
-  public static function extraDataFields() {
-    $fields = array();
-    $f = array(
-      'name' => t('Name'),
-      'first_name' => t('First name'),
-      'last_name' => t('Last name'),
-      'address_line1' => t('Address line 1'),
-      'address_line2' => t('Address line 2'),
-      'address_city' => t('City'),
-      'address_state' => t('State'),
-      'address_zip' => t('Postal code'),
-      'address_country' => t('Country'),
-    );
-    foreach ($f as $name => $title) {
-      $fields[$name] = array(
-        '#type' => 'hidden',
-        '#title' => $title,
-        '#attributes' => array('data-payone' => $name),
-      );
-    }
-    return $fields;
-  }
 }
