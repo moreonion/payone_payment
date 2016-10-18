@@ -7,6 +7,7 @@ class CreditCardController extends \PaymentMethodController {
   public $controller_data_defaults = [
     'mid' => '',
     'portalid'  => '',
+    'aid' => '',
     'api_key' => '',
     'live' => 0,
     'field_map' => [
@@ -48,15 +49,34 @@ class CreditCardController extends \PaymentMethodController {
   public function execute(\Payment $payment) {
     $context = &$payment->contextObj;
 
+    $currency = currency_load($payment->currency_code);
     $data = [
       'clearingtype' => 'cc',
       'reference' => $payment->pid,
-      'amount' => $payment->totalAmount(TRUE),
+      'amount' => (int) ($payment->totalAmount(TRUE) * $currency->subunits),
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
     ] + $payment->method_data['personal_data'];
     $api = Api::fromControllerData($payment->method->controller_data);
-    $api->serverRequest('authorization', $data);
+    $response = $api->serverRequest('authorization', $data);
+
+    if ($response['status'] == 'APPROVED') {
+      // These other keys are defined in $response:
+      // - txid: The payone transaction id.
+      // - userid: The payone user id.
+      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
+    }
+    else {
+      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
+      $message = '@method API-Error (pid=@pid, pmid=@pmid): @status @message.';
+      $variables = array(
+        '@status'   => $response['errorcode'],
+        '@message'  => $response['errormessage'],
+        '@pid'      => $payment->pid,
+        '@pmid'     => $payment->method->pmid,
+      );
+      watchdog('payone_payment', $message, $variables, WATCHDOG_ERROR);
+    }
   }
 
   /**

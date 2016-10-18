@@ -34,7 +34,7 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
     $method = &$payment->method;
 
     $params = Api::fromControllerData($method->controller_data)
-      ->clientParameters('creditcardcheck');
+      ->clientParameters('creditcardcheck', ['storecarddata' => 'yes']);
     $settings['payone_payment'][$method->pmid] = $params;
     drupal_add_js($settings, 'setting');
     drupal_add_js(
