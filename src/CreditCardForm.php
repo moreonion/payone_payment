@@ -90,6 +90,11 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
     unset($values['secure_code']);
 
     $p = &$values['personal_data'];
+
+    if (empty($p['country'])) {
+      form_error($element['personal_data']['country'], t('Please select your country.'));
+    }
+
     if (empty($p['firstname']) && empty($p['company'])) {
       form_error($element['personal_data'], t('Either a first name or a company name must be given.'));
     }
@@ -122,6 +127,9 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
       if (empty($field['#required']) || $has_value) {
         $field['#access'] = FALSE;
       }
+      // We can't have required fields in optional parts of the form.
+      // This payment method might not be the only way to pay. ;)
+      $field['#required'] = FALSE;
     }
 
     // Show firstname and company fields if both are empty.
