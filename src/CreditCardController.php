@@ -46,14 +46,18 @@ class CreditCardController extends \PaymentMethodController {
     parent::validate($payment, $payment_method, $strict);
   }
 
+  public function generateReference(\Payment $payment) {
+    $status = $payment->getStatus();
+    return $payment->pid . '-' . $status->psiid;
+  }
+
   public function execute(\Payment $payment) {
     $context = &$payment->contextObj;
 
     $currency = currency_load($payment->currency_code);
-    $status = $payment->getStatus();
     $data = [
       'clearingtype' => 'cc',
-      'reference' => $payment->pid . '-' . $status->psiid,
+      'reference' => $this->generateReference($payment),
       'amount' => (int) ($payment->totalAmount(TRUE) * $currency->subunits),
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
@@ -69,7 +73,7 @@ class CreditCardController extends \PaymentMethodController {
     }
     else {
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
-      $message = '@method API-Error (pid=@pid, pmid=@pmid): @status @message.';
+      $message = 'API-Error (pid=@pid, pmid=@pmid): @status @message.';
       $variables = array(
         '@status'   => $response['errorcode'],
         '@message'  => $response['errormessage'],
