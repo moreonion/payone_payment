@@ -53,7 +53,7 @@ class CreditCardController extends \PaymentMethodController {
     $status = $payment->getStatus();
     $data = [
       'clearingtype' => 'cc',
-      'reference' => $payment->pid . ':' . $status->psiid,
+      'reference' => $payment->pid . '-' . $status->psiid,
       'amount' => (int) ($payment->totalAmount(TRUE) * $currency->subunits),
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
