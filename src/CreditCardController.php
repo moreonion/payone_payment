@@ -51,7 +51,10 @@ class CreditCardController extends \PaymentMethodController {
     return $payment->pid . '-' . $status->psiid;
   }
 
-  public function execute(\Payment $payment) {
+  public function execute(\Payment $payment, $api = NULL) {
+    if (!$api) {
+      $api = Api::fromControllerData($payment->method->controller_data);
+    }
     $context = &$payment->contextObj;
 
     $currency = currency_load($payment->currency_code);
@@ -62,7 +65,6 @@ class CreditCardController extends \PaymentMethodController {
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
     ] + $payment->method_data['personal_data'];
-    $api = Api::fromControllerData($payment->method->controller_data);
     $response = $api->serverRequest('authorization', $data);
 
     if ($response['status'] == 'APPROVED') {
