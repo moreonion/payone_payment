@@ -85,6 +85,8 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
       ->method('ccAuthorizationRequest')
       ->will($this->throwException($exception));
     $controller->execute($p, $api);
+
+    $this->assertEqual(PAYMENT_STATUS_FAILED, $p->getStatus()->status);
   }
 
   public function test_execute_HttpError() {
@@ -97,6 +99,8 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
       ->method('ccAuthorizationRequest')
       ->will($this->throwException($exception));
     $controller->execute($p, $api);
+
+    $this->assertEqual(PAYMENT_STATUS_FAILED, $p->getStatus()->status);
   }
 
 }
