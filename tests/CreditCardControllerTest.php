@@ -28,13 +28,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
   }
 
   protected function mockApi() {
-    return $this->getMock('\\Drupal\\payone_payment\\Api', ['ccAuthorizationRequest'], [
-      'mid' => 1,
-      'aid' => 1,
-      'portalid' => 1,
-      'api_key' => 'asdf',
-      'live' => FALSE,
-    ]);
+    return $this->createMock(Api::class);
   }
 
   public function test_getReference_isConsistent() {
@@ -79,7 +73,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     $p = $this->paymentStub();
     $api = $this->mockApi();
     $controller = new CreditCardController();
-    $exception = $this->getMock('\\Drupal\\payone_payment\\ApiError', ['log'], ['Testerror', 9999]);
+    $exception = $this->createMock(ApiError::class);
     $exception->expects($this->once())->method('log');
     $api->expects($this->once())
       ->method('ccAuthorizationRequest')
@@ -93,7 +87,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     $p = $this->paymentStub();
     $api = $this->mockApi();
     $controller = new CreditCardController();
-    $exception = $this->getMock('\\Drupal\\payone_payment\\HttpError', ['log'], ['Testerror', 9999]);
+    $exception = $this->createMock(HttpError::class);
     $exception->expects($this->once())->method('log');
     $api->expects($this->once())
       ->method('ccAuthorizationRequest')

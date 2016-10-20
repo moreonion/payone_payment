@@ -165,7 +165,7 @@ class Api {
   public function serverRequest($request, $data) {
     $params = $this->authParams($request, TRUE) + $data;
     $post_data = http_build_query($params);
-    $r = drupal_http_request('https://api.pay1.de/post-gateway/', [
+    $r = $this->post('https://api.pay1.de/post-gateway/', [
       'method' => 'POST',
       'data' => $post_data,
       'headers' => [
@@ -188,6 +188,10 @@ class Api {
       }
     }
     return $response;
+  }
+
+  protected function post($url, $options) {
+    return drupal_http_request($url, $options);
   }
 
   protected function hmacSign($data) {
