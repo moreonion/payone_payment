@@ -18,6 +18,16 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     return $payment;
   }
 
+  protected function mockApi() {
+    return $this->getMock('\\Drupal\\payone_payment\\Api', ['ccAuthorizationRequest'], [
+      'mid' => 1,
+      'aid' => 1,
+      'portalid' => 1,
+      'api_key' => 'asdf',
+      'live' => FALSE,
+    ]);
+  }
+
   public function test_getReference_isConsistent() {
     $p = $this->paymentStub();
     $controller = new CreditCardController();
@@ -31,10 +41,10 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     $controller = new CreditCardController();
     $r = $controller->generateReference($p);
     // Format according to spec version 2.85.
-    $this->assertRegExp('/^[0-9a-zA-Z\\.\\-_\\/]{1,20}$/', '4711-12');
+    $this->assertRegExp('/^[0-9a-zA-Z\\.\\-_\\/]{1,20}$/', $r);
   }
 
-  public function test_execute_data() {
+  public function test_execute_success() {
     $p = $this->paymentStub();
     $p->method_data = [
       'payone_pseudocardpan' => '123456789',
@@ -43,13 +53,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
         'country' => 'AT',
       ],
     ];
-    $api = $this->getMock('\\Drupal\\payone_payment\\Api', ['serverRequest'], [
-      'mid' => 1,
-      'aid' => 1,
-      'portalid' => 1,
-      'api_key' => 'asdf',
-      'live' => FALSE,
-    ]);
+    $api = $this->mockApi();
     $controller = new CreditCardController();
     $expected = [
       'clearingtype' => 'cc',
@@ -61,9 +65,30 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
       'country' => 'AT',
     ];
     $api->expects($this->once())
-      ->method('serverRequest')
-      ->with($this->equalTo('authorization'), $this->equalTo($expected))
+      ->method('ccAuthorizationRequest')
+      ->with($this->equalTo($expected))
       ->will($this->returnValue(['status' => 'APPROVED']));
+    $controller->execute($p, $api);
+
+    $this->assertEqual(PAYMENT_STATUS_SUCCESS, $p->getStatus()->status);
+  }
+
+  public function test_execute_apiError() {
+    $p = $this->paymentStub();
+    $p->method_data = [
+      'payone_pseudocardpan' => '123456789',
+      'personal_data' => [
+        'lastname' => 'Last',
+        'country' => 'AT',
+      ],
+    ];
+    $api = $this->mockApi();
+    $controller = new CreditCardController();
+    $exception = $this->getMock('\\Drupal\\payone_payment\\ApiError', ['log'], ['Testerror', 9999]);
+    $exception->expects($this->once())->method('log');
+    $api->expects($this->once())
+      ->method('ccAuthorizationRequest')
+      ->will($this->throwException($exception));
     $controller->execute($p, $api);
   }
 

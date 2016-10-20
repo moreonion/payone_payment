@@ -65,24 +65,18 @@ class CreditCardController extends \PaymentMethodController {
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
     ] + $payment->method_data['personal_data'];
-    $response = $api->serverRequest('authorization', $data);
 
-    if ($response['status'] == 'APPROVED') {
+    try {
       // These other keys are defined in $response:
+      // - status: 'APPROVED'
       // - txid: The payone transaction id.
       // - userid: The payone user id.
+      $response = $api->ccAuthorizationRequest($data);
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
     }
-    else {
+    catch (ApiError $e) {
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
-      $message = 'API-Error (pid=@pid, pmid=@pmid): @status @message.';
-      $variables = array(
-        '@status'   => $response['errorcode'],
-        '@message'  => $response['errormessage'],
-        '@pid'      => $payment->pid,
-        '@pmid'     => $payment->method->pmid,
-      );
-      watchdog('payone_payment', $message, $variables, WATCHDOG_ERROR);
+      $e->log($payment);
     }
   }
 

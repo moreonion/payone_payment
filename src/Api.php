@@ -127,6 +127,17 @@ class Api {
     return $params;
   }
 
+  public function ccAuthorizationRequest($data) {
+    $response = $this->serverRequest('authorization', $data);
+
+    if ($response['status'] == 'APPROVED') {
+      return $response;
+    }
+    else {
+      throw ApiError::fromResponseData($response);
+    }
+  }
+
   public function serverRequest($request, $data) {
     $params = $this->authParams($request, TRUE) + $data;
     $post_data = http_build_query($params);
@@ -148,8 +159,6 @@ class Api {
         }
       }
     }
-    // @TODO Throw exceptions on API-Error.
-
     return $response;
   }
 
