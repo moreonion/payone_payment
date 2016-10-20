@@ -9,12 +9,14 @@ class ApiError extends \Exception {
   }
 
   public function log(\Payment $payment) {
-    $message = 'API-Error (pid=@pid, pmid=@pmid): @status @message.';
+    $class = get_called_class();
+    $message = '@class (pid=@pid, pmid=@pmid): @status @message.';
     $variables = array(
-      '@status'   => $this->code,
-      '@message'  => $this->message,
-      '@pid'      => $payment->pid,
-      '@pmid'     => $payment->method->pmid,
+      '@class' => $class,
+      '@status' => $this->code,
+      '@message' => $this->message,
+      '@pid' => $payment->pid,
+      '@pmid' => $payment->method->pmid,
     );
     watchdog_exception('payone_payment', $this, $message, $variables, WATCHDOG_ERROR);
   }

@@ -4,10 +4,19 @@ namespace Drupal\payone_payment;
 
 class CreditCardControllerTest extends \DrupalUnitTestCase {
 
+  protected $methodData = [
+    'payone_pseudocardpan' => '123456789',
+    'personal_data' => [
+      'lastname' => 'Last',
+      'country' => 'AT',
+    ],
+  ];
+
   protected function paymentStub() {
     $payment = entity_create('payment', [
       'pid' => 4711,
       'currency_code' => 'EUR',
+      'method_data' => $this->methodData,
     ]);
     $payment->setLineItem(new \PaymentLineItem([
       'name' => 'test',
@@ -46,13 +55,6 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
 
   public function test_execute_success() {
     $p = $this->paymentStub();
-    $p->method_data = [
-      'payone_pseudocardpan' => '123456789',
-      'personal_data' => [
-        'lastname' => 'Last',
-        'country' => 'AT',
-      ],
-    ];
     $api = $this->mockApi();
     $controller = new CreditCardController();
     $expected = [
@@ -73,18 +75,23 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     $this->assertEqual(PAYMENT_STATUS_SUCCESS, $p->getStatus()->status);
   }
 
-  public function test_execute_apiError() {
+  public function test_execute_ApiError() {
     $p = $this->paymentStub();
-    $p->method_data = [
-      'payone_pseudocardpan' => '123456789',
-      'personal_data' => [
-        'lastname' => 'Last',
-        'country' => 'AT',
-      ],
-    ];
     $api = $this->mockApi();
     $controller = new CreditCardController();
     $exception = $this->getMock('\\Drupal\\payone_payment\\ApiError', ['log'], ['Testerror', 9999]);
+    $exception->expects($this->once())->method('log');
+    $api->expects($this->once())
+      ->method('ccAuthorizationRequest')
+      ->will($this->throwException($exception));
+    $controller->execute($p, $api);
+  }
+
+  public function test_execute_HttpError() {
+    $p = $this->paymentStub();
+    $api = $this->mockApi();
+    $controller = new CreditCardController();
+    $exception = $this->getMock('\\Drupal\\payone_payment\\HttpError', ['log'], ['Testerror', 9999]);
     $exception->expects($this->once())->method('log');
     $api->expects($this->once())
       ->method('ccAuthorizationRequest')

@@ -127,6 +127,17 @@ class Api {
     return $params;
   }
 
+  /**
+   * Send a CC authorization request.
+   *
+   * @param array $data
+   *   Payment data
+   *
+   * @return array
+   *   API-response data.
+   *
+   * @throws ApiError if the request is denied.
+   */
   public function ccAuthorizationRequest($data) {
     $response = $this->serverRequest('authorization', $data);
 
@@ -138,6 +149,19 @@ class Api {
     }
   }
 
+  /**
+   * Send a POST request to the Server API.
+   *
+   * @param string $request
+   *   Type of the request (ie. 'authorization')
+   * @param array $data
+   *   Request arguments.
+   *
+   * @return array
+   *   The server response as an array.
+   *
+   * @throws HttpError if the request was not successful (200).
+   */
   public function serverRequest($request, $data) {
     $params = $this->authParams($request, TRUE) + $data;
     $post_data = http_build_query($params);
@@ -148,6 +172,10 @@ class Api {
         'Content-Type' => 'application/x-www-form-urlencoded',
       ],
     ]);
+
+    if ($r->code != 200) {
+      throw HttpError::fromHttpResponse($r);
+    }
 
     // Parse the response - which consists of lines of key=value pairs.
     $response = [];

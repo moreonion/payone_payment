@@ -74,6 +74,11 @@ class CreditCardController extends \PaymentMethodController {
       $response = $api->ccAuthorizationRequest($data);
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
     }
+    catch (HttpError $e) {
+      // TODO: Maybe retry here a few seconds later?
+      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
+      $e->log($payment);
+    }
     catch (ApiError $e) {
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
       $e->log($payment);
