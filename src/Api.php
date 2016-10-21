@@ -127,16 +127,55 @@ class Api {
     return $params;
   }
 
+  /**
+   * Send a CC authorization request.
+   *
+   * @param array $data
+   *   Payment data
+   *
+   * @return array
+   *   API-response data.
+   *
+   * @throws ApiError if the request is denied.
+   */
+  public function ccAuthorizationRequest($data) {
+    $response = $this->serverRequest('authorization', $data);
+
+    if ($response['status'] == 'APPROVED') {
+      return $response;
+    }
+    else {
+      throw ApiError::fromResponseData($response);
+    }
+  }
+
+  /**
+   * Send a POST request to the Server API.
+   *
+   * @param string $request
+   *   Type of the request (ie. 'authorization')
+   * @param array $data
+   *   Request arguments.
+   *
+   * @return array
+   *   The server response as an array.
+   *
+   * @throws HttpError if the request was not successful (200).
+   */
   public function serverRequest($request, $data) {
     $params = $this->authParams($request, TRUE) + $data;
     $post_data = http_build_query($params);
-    $r = drupal_http_request('https://api.pay1.de/post-gateway/', [
+    $r = $this->post('https://api.pay1.de/post-gateway/', [
       'method' => 'POST',
       'data' => $post_data,
       'headers' => [
         'Content-Type' => 'application/x-www-form-urlencoded',
       ],
     ]);
+
+    if ($r->code != 200) {
+      throw HttpError::fromHttpResponse($r);
+    }
 
     // Parse the response - which consists of lines of key=value pairs.
     $response = [];
@@ -148,9 +187,11 @@ class Api {
         }
       }
     }
-    // @TODO Throw exceptions on API-Error.
-
     return $response;
+  }
+
+  protected function post($url, $options) {
+    return drupal_http_request($url, $options);
   }
 
   protected function hmacSign($data) {

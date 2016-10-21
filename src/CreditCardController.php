@@ -46,37 +46,42 @@ class CreditCardController extends \PaymentMethodController {
     parent::validate($payment, $payment_method, $strict);
   }
 
-  public function execute(\Payment $payment) {
+  public function generateReference(\Payment $payment) {
+    $status = $payment->getStatus();
+    return $payment->pid . '-' . $status->psiid;
+  }
+
+  public function execute(\Payment $payment, $api = NULL) {
+    if (!$api) {
+      $api = Api::fromControllerData($payment->method->controller_data);
+    }
     $context = &$payment->contextObj;
 
     $currency = currency_load($payment->currency_code);
-    $status = $payment->getStatus();
     $data = [
       'clearingtype' => 'cc',
-      'reference' => $payment->pid . '-' . $status->psiid,
+      'reference' => $this->generateReference($payment),
       'amount' => (int) ($payment->totalAmount(TRUE) * $currency->subunits),
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
     ] + $payment->method_data['personal_data'];
-    $api = Api::fromControllerData($payment->method->controller_data);
-    $response = $api->serverRequest('authorization', $data);
 
-    if ($response['status'] == 'APPROVED') {
+    try {
       // These other keys are defined in $response:
+      // - status: 'APPROVED'
       // - txid: The payone transaction id.
       // - userid: The payone user id.
+      $response = $api->ccAuthorizationRequest($data);
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
     }
-    else {
+    catch (HttpError $e) {
+      // TODO: Maybe retry here a few seconds later?
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
-      $message = '@method API-Error (pid=@pid, pmid=@pmid): @status @message.';
-      $variables = array(
-        '@status'   => $response['errorcode'],
-        '@message'  => $response['errormessage'],
-        '@pid'      => $payment->pid,
-        '@pmid'     => $payment->method->pmid,
-      );
-      watchdog('payone_payment', $message, $variables, WATCHDOG_ERROR);
+      $e->log($payment);
+    }
+    catch (ApiError $e) {
+      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
+      $e->log($payment);
     }
   }
 
