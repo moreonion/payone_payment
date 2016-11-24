@@ -1,13 +1,11 @@
 <?php
 
-namespace \Drupal\payone_payment;
+namespace Drupal\payone_payment;
 
 class CreditCardConfigurationForm implements \Drupal\payment_forms\MethodFormInterface {
   
-  public function configurationForm(array $element, array &$form_state, \PaymentMethod $method) {
+  public function form(array &$element, array &$form_state, \PaymentMethod $method) {
     $cd = $method->controller_data;
-    $cd += $this->controller_data_defaults;
-    $cd['field_map'] += $this->controller_data_defaults['field_map'];
 
     $element['credentials'] = [
       '#type' => 'fieldset',
@@ -80,7 +78,7 @@ class CreditCardConfigurationForm implements \Drupal\payment_forms\MethodFormInt
     return preg_match("/^[0-9]{{$min},{$max}}$/", $value);
   }
 
-  public function configurationFormValidate(array $element, array &$form_state, \PaymentMethod $method) {
+  public function validate(array &$element, array &$form_state, \PaymentMethod $method) {
     $cd = drupal_array_get_nested_value($form_state['values'], $element['#parents']);
     foreach ($cd['field_map'] as $k => &$v) {
       $v = array_filter(array_map('trim', explode(',', $v)));

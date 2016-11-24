@@ -3,7 +3,8 @@
 namespace Drupal\payone_payment;
 
 class CreditCardController extends \PaymentMethodController {
-  use \Drupal\payment_forms\FormCallbacksMixin;
+  public $payment_configuration_form_elements_callback = 'payment_forms_payment_form';
+  public $payment_method_configuration_form_elements_callback = 'payment_forms_method_configuration_form';
 
   public $controller_data_defaults = [
     'mid' => '',
@@ -52,6 +53,7 @@ class CreditCardController extends \PaymentMethodController {
   }
 
   public function generateReference(\Payment $payment) {
+    entity_save('payment', $payment);
     $status = $payment->getStatus();
     return $payment->pid . '-' . $status->psiid;
   }

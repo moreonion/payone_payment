@@ -2,6 +2,8 @@
 
 namespace Drupal\payone_payment;
 
+require_once DRUPAL_ROOT . '/includes/locale.inc';
+
 class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
   const AJAX_JS = 'https://secure.pay1.de/client-api/js/ajax.js';
 
