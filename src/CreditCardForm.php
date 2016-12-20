@@ -2,6 +2,7 @@
 
 namespace Drupal\payone_payment;
 
+// Needed for country_get_list().
 require_once DRUPAL_ROOT . '/includes/locale.inc';
 
 class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
@@ -24,8 +25,8 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
     'D' => 'CSC (Card Security Code)',
   );
 
-  public function getForm(array &$form, array &$form_state, \Payment $payment) {
-    parent::getForm($form, $form_state, $payment);
+  public function form(array $form, array &$form_state, \Payment $payment) {
+    $form = parent::form($form, $form_state, $payment);
 
     $form['holder'] = [
       '#type' => 'textfield',
@@ -72,10 +73,11 @@ class CreditCardForm extends \Drupal\payment_forms\CreditCardForm {
       $form['holder']['#default_value'] = $p['firstname']['#default_value'] . ' ' . $p['lastname']['#default_value'];
     }
 
+    return $form;
   }
 
-  public function validateForm(array &$element, array &$form_state, \Payment $payment) {
-    // Stripe takes care of the real validation, client-side.
+  public function validate(array $element, array &$form_state, \Payment $payment) {
+    // PayOne takes care of the real validation, client-side.
     $values = &drupal_array_get_nested_value($form_state['values'], $element['#parents']);
 
     if (!empty($values['credit_card_number']) || !empty($values['secure_code'])) {
