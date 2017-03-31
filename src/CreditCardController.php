@@ -53,7 +53,9 @@ class CreditCardController extends \PaymentMethodController {
   }
 
   public function generateReference(\Payment $payment) {
-    entity_save('payment', $payment);
+    if (!$payment->pid || !$payment->getStatus()->psiid) {
+      entity_save('payment', $payment);
+    }
     $status = $payment->getStatus();
     return $payment->pid . '-' . $status->psiid;
   }
