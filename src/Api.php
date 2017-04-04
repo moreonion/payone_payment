@@ -150,6 +150,28 @@ class Api {
   }
 
   /**
+   * Send e-wallet authorization request.
+   *
+   * @param array $data
+   *   Payment data
+   *
+   * @return array
+   *   API-response data.
+   *
+   * @throws ApiError for failed attempts.
+   */
+  public function wltAuthorizationRequest($data) {
+    $response = $this->serverRequest('authorization', $data);
+
+    if ($response['status'] == 'REDIRECT') {
+      return $response;
+    }
+    else {
+      throw ApiError::fromResponseData($response);
+    }
+  }
+
+  /**
    * Send a POST request to the Server API.
    *
    * @param string $request

@@ -2,6 +2,13 @@
 
 namespace Drupal\payone_payment;
 
+/**
+ * Common functionality needed by all PayOne payment controllers.
+ *
+ * - Controller data defaults.
+ * - Method configuration form.
+ * - A way to generate a payment reference.
+ */
 abstract class ControllerBase extends \PaymentMethodController {
 
   public $payment_method_configuration_form_elements_callback = 'payment_forms_method_configuration_form';
@@ -34,7 +41,7 @@ abstract class ControllerBase extends \PaymentMethodController {
   ];
 
   public function configurationForm(\PaymentMethod $method) {
-    return new CreditCardConfigurationForm();
+    return new PayoneConfigurationForm();
   }
 
   /**
