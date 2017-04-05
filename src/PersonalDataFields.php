@@ -17,6 +17,7 @@ class PersonalDataFields {
       '#type' => 'fieldset',
       '#title' => t('Personal data'),
       '#weight' => 100,
+      '#tree' => TRUE,
     ] + $this->mappedFields($payment);
 
     // Only display the fieldset if there is fields in it.
