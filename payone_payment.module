@@ -1,11 +1,91 @@
 <?php
 
 use \Drupal\payone_payment\CreditCardController;
+use \Drupal\payone_payment\PaypalECController;
+use \Drupal\payone_payment\Statuses;
+
+/**
+ * Implements hook_menu().
+ */
+function payone_payment_menu() {
+  $items['payone-payment/%payone_payment_return_method/%entity_object/%'] = [
+    'load arguments' => ['payment'],
+    'page callback' => 'payone_payment_return',
+    'page arguments' => [1, 2],
+    'access callback' => 'payone_payment_return_access',
+    'access arguments' => [1, 2, 3],
+  ];
+  return $items;
+}
+
+/**
+ * Menu item load callback: Check if this is a valid return method.
+ */
+function payone_payment_return_method_load($method) {
+  if (in_array($method, ['success', 'error', 'back'])) {
+    return $method;
+  }
+  return FALSE; // 404
+}
+
+/**
+ * Access callback: Check the hash signature.
+ */
+function payone_payment_return_access($method, \Payment $payment, $hash) {
+  return PaypalECController::sign($method, $payment->pid) === $hash;
+}
+
+/**
+ * Page callback: Return for e-wallet payments.
+ */
+function payone_payment_return($method, \Payment $payment) {
+  // Set the appropriate status. The finish callback takes it from there.
+  switch ($method) {
+    case 'success':
+      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
+      break;
+
+    case 'error':
+      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_FAILED));
+      break;
+
+    case 'back':
+      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_CANCELLED));
+      break;
+  }
+  $payment->finish();
+}
 
 /**
  * Implements hook_payment_method_controller_info().
  */
 function payone_payment_payment_method_controller_info() {
-  $controllers['payone_payment_credit_card'] = '\Drupal\payone_payment\CreditCardController';
+  $controllers['payone_payment_credit_card'] = CreditCardController::class;
+  $controllers['payone_payment_paypal_ec'] = PaypalECController::class;
   return $controllers;
+}
+
+/**
+ * Implements hook_payment_status_info().
+ */
+function payone_payment_payment_status_info() {
+  return [
+    new PaymentStatusInfo([
+      'description' => t('User has been redirected to an external payment page.'),
+      'status' => Statuses::REDIRECTED,
+      'parent' => PAYMENT_STATUS_PENDING,
+      'title' => t('Redirected (waiting for user to return)'),
+    ]),
+  ];
+}
+
+/**
+ * Implements hook_theme().
+ */
+function payone_payment_theme() {
+  $items['payone_payment_redirect_info'] = [
+    'variables' => ['payment' => NULL],
+    'template' => 'payone-payment-redirect-info',
+  ];
+  return $items;
 }

@@ -22,6 +22,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
       'name' => 'test',
       'amount' => 42.00,
     ]));
+    $payment->method = entity_create('payment_method', []);
     $s = new \PaymentStatusItem(PAYMENT_STATUS_PENDING, 0, 4711, 12);
     $payment->setStatus($s);
     return $payment;

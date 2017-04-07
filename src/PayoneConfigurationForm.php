@@ -2,9 +2,9 @@
 
 namespace Drupal\payone_payment;
 
-class CreditCardConfigurationForm implements \Drupal\payment_forms\MethodFormInterface {
+class PayoneConfigurationForm implements \Drupal\payment_forms\MethodFormInterface {
   
-  public function form(array &$element, array &$form_state, \PaymentMethod $method) {
+  public function form(array $element, array &$form_state, \PaymentMethod $method) {
     $cd = $method->controller_data;
 
     $element['credentials'] = [
@@ -61,7 +61,7 @@ class CreditCardConfigurationForm implements \Drupal\payment_forms\MethodFormInt
     );
 
     $map = $cd['field_map'];
-    foreach (CreditCardForm::extraDataFields() as $name => $field) {
+    foreach (PersonalDataFields::extraDataFields() as $name => $field) {
       $default = implode(', ', isset($map[$name]) ? $map[$name] : array());
       $element['field_map'][$name] = array(
         '#type' => 'textfield',
@@ -78,7 +78,7 @@ class CreditCardConfigurationForm implements \Drupal\payment_forms\MethodFormInt
     return preg_match("/^[0-9]{{$min},{$max}}$/", $value);
   }
 
-  public function validate(array &$element, array &$form_state, \PaymentMethod $method) {
+  public function validate(array $element, array &$form_state, \PaymentMethod $method) {
     $cd = drupal_array_get_nested_value($form_state['values'], $element['#parents']);
     foreach ($cd['field_map'] as $k => &$v) {
       $v = array_filter(array_map('trim', explode(',', $v)));
