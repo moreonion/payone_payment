@@ -3,6 +3,7 @@
 use \Drupal\payone_payment\CreditCardController;
 use \Drupal\payone_payment\PaypalECController;
 use \Drupal\payone_payment\Statuses;
+use \Drupal\payone_payment\Transaction;
 
 /**
  * Implements hook_menu().
@@ -88,4 +89,14 @@ function payone_payment_theme() {
     'template' => 'payone-payment-redirect-info',
   ];
   return $items;
+}
+
+/**
+ * Implements hook_payment_delete().
+ */
+function payone_payment_payment_delete(\Payment $payment) {
+  $psiids = array_map(function ($s) {
+    return $s->psiid;
+  }, $payment->statuses);
+  Transaction::deleteIds($psiids);
 }

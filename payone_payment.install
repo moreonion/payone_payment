@@ -4,7 +4,68 @@
  * Implements hook_schema().
  */
 function payone_payment_schema() {
-  return [];
+  $tables['payone_payment_transactions'] = [
+    'description' => 'Record payone transaction IDs for payment status items.',
+    'fields' => [
+      'psiid' => [
+        'description' => 'Payment status item ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'txid' => [
+        'description' => 'A payone transaction ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['psiid'],
+    'indexes' => [
+      'txid' => ['txid'],
+    ],
+    'foreign keys' => [
+      'payment_status_item' => [
+        'table' => 'payment_status_item',
+        'columns' => ['psiid' => 'psiid'],
+      ]
+    ],
+  ];
+
+  return $tables;
+}
+
+/**
+ * Add the {payone_pament_transactions} table.
+ */
+function payone_payment_update_7102() {
+  db_create_table('payone_payment_transactions', [
+    'description' => 'Record payone transaction IDs for payment status items.',
+    'fields' => [
+      'psiid' => [
+        'description' => 'Payment status item ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'txid' => [
+        'description' => 'A payone transaction ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['psiid'],
+    'indexes' => [
+      'txid' => ['txid'],
+    ],
+    'foreign keys' => [
+      'payment_status_item' => [
+        'table' => 'payment_status_item',
+        'columns' => ['psiid' => 'psiid'],
+      ]
+    ],
+  ]);
 }
 
 /**

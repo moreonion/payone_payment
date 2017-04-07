@@ -28,8 +28,10 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     return $payment;
   }
 
-  protected function mockApi() {
-    return $this->createMock(Api::class);
+  protected function mockController() {
+    $api = $this->createMock(Api::class);
+    $controller = new CreditCardController();
+    return [$controller, $api];
   }
 
   public function test_getReference_isConsistent() {
@@ -50,11 +52,12 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
 
   public function test_execute_success() {
     $p = $this->paymentStub();
-    $api = $this->mockApi();
-    $controller = new CreditCardController();
+    $p->pid = NULL;
+    entity_save('payment', $p);
+    list($controller, $api) = $this->mockController();
     $expected = [
       'clearingtype' => 'cc',
-      'reference' => '4711-12',
+      'reference' => $p->pid . '-12',
       'amount' => 4200,
       'currency' => 'EUR',
       'pseudocardpan' => '123456789',
@@ -64,16 +67,21 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     $api->expects($this->once())
       ->method('ccAuthorizationRequest')
       ->with($this->equalTo($expected))
-      ->will($this->returnValue(['status' => 'APPROVED']));
+      ->will($this->returnValue(['status' => 'APPROVED', 'txid' => 42]));
     $controller->execute($p, $api);
 
-    $this->assertEqual(PAYMENT_STATUS_SUCCESS, $p->getStatus()->status);
+    $status = $p->getStatus();
+    $this->assertEqual(PAYMENT_STATUS_SUCCESS, $status->status);
+    $t = Transaction::load($status->psiid);
+    $this->assertNotEmpty($t);
+    $this->assertEqual(42, $t->txid);
+    entity_delete('payment', $p->pid);
+    $this->assertEmpty(Transaction::load($status->psiid));
   }
 
   public function test_execute_ApiError() {
     $p = $this->paymentStub();
-    $api = $this->mockApi();
-    $controller = new CreditCardController();
+    list($controller, $api) = $this->mockController();
     $exception = $this->createMock(ApiError::class);
     $exception->expects($this->once())->method('log');
     $api->expects($this->once())
@@ -86,8 +94,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
 
   public function test_execute_HttpError() {
     $p = $this->paymentStub();
-    $api = $this->mockApi();
-    $controller = new CreditCardController();
+    list($controller, $api) = $this->mockController();
     $exception = $this->createMock(HttpError::class);
     $exception->expects($this->once())->method('log');
     $api->expects($this->once())

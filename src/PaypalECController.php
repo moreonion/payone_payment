@@ -86,6 +86,7 @@ class PaypalECController extends ControllerBase {
       $response = $api->wltAuthorizationRequest($data);
       $payment->setStatus(new \PaymentStatusItem(Statuses::REDIRECTED));
       entity_save('payment', $payment);
+      $this->setTxid($payment, $response['txid']);
       $context->redirect($response['redirecturl']);
     }
     catch (HttpError $e) {

@@ -42,6 +42,7 @@ class CreditCardController extends ControllerBase {
       // - userid: The payone user id.
       $response = $api->ccAuthorizationRequest($data);
       $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
+      $this->setTxid($payment, $response['txid']);
     }
     catch (HttpError $e) {
       // TODO: Maybe retry here a few seconds later?
