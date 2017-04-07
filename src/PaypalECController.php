@@ -38,13 +38,6 @@ class PaypalECController extends ControllerBase {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  function validate(\Payment $payment, \PaymentMethod $payment_method, $strict) {
-    parent::validate($payment, $payment_method, $strict);
-  }
-
-  /**
    * Generate the return URLs.
    *
    * @param int $pid

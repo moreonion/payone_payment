@@ -13,13 +13,6 @@ class CreditCardController extends ControllerBase {
     return new CreditCardForm();
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  function validate(\Payment $payment, \PaymentMethod $payment_method, $strict) {
-    parent::validate($payment, $payment_method, $strict);
-  }
-
   public function execute(\Payment $payment, $api = NULL) {
     if (!$api) {
       $api = Api::fromControllerData($payment->method->controller_data);
