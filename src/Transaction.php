@@ -44,6 +44,25 @@ class Transaction extends Model {
   }
 
   /**
+   * Load the last transaction logged for a payment.
+   *
+   * @param int $pid
+   *   The payment ID.
+   *
+   * @return static|null
+   *   The newly the latest transaction for this payment if any.
+   */
+  public static function loadLastByPid($pid) {
+    $q = db_select(static::$table, 't')->fields('t');
+    $q->innerJoin('payment_status_item', 'psi', 'psi.psiid=t.psiid');
+    $row = $q->condition('psi.pid', $pid)->orderBy('psiid', 'DESC')->range(0, 1)
+      ->execute()->fetch();
+    if ($row) {
+      return new static($row, FALSE);
+    }
+  }
+
+  /**
    * Load multiple transaction objects by their psiid (if available).
    *
    * @param int[] $psiids
