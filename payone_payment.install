@@ -4,57 +4,73 @@
  * Implements hook_schema().
  */
 function payone_payment_schema() {
-  $tables['payone_payment_controller_data'] = [
+  $tables['payone_payment_transactions'] = [
+    'description' => 'Record payone transaction IDs for payment status items.',
     'fields' => [
-      'pmid' => [
-        'description' => 'Payment method ID',
+      'psiid' => [
+        'description' => 'Payment status item ID',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
-      'mid' => [
-        'description' => 'PayOne Merchant ID',
+      'txid' => [
+        'description' => 'A payone transaction ID',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ],
-      'portalid' => [
-        'description' => 'PayOne Portal ID',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ],
-      'aid' => [
-        'description' => 'PayOne Sub-Account ID',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ],
-      'api_key' => [
-        'description' => 'Key for the PayOne Portal',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-      ],
-      'live' => [
-        'description' => 'Use the payment method in live-mode.',
-        'type' => 'int',
-        'size' => 'tiny'
-      ],
-      'config' => array(
-        'description' => 'Extra config (serialized)',
-        'type' => 'text',
-        'serialize' => TRUE,
-      ),
     ],
-    'primary key' => ['pmid'],
+    'primary key' => ['psiid'],
+    'indexes' => [
+      'txid' => ['txid'],
+    ],
     'foreign keys' => [
-      'payment_method' => [
-        'table' => 'payment_method',
-        'columns' => ['pmid' => 'pmid'],
+      'payment_status_item' => [
+        'table' => 'payment_status_item',
+        'columns' => ['psiid' => 'psiid'],
       ]
     ],
   ];
 
   return $tables;
+}
+
+/**
+ * Add the {payone_pament_transactions} table.
+ */
+function payone_payment_update_7102() {
+  db_create_table('payone_payment_transactions', [
+    'description' => 'Record payone transaction IDs for payment status items.',
+    'fields' => [
+      'psiid' => [
+        'description' => 'Payment status item ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'txid' => [
+        'description' => 'A payone transaction ID',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['psiid'],
+    'indexes' => [
+      'txid' => ['txid'],
+    ],
+    'foreign keys' => [
+      'payment_status_item' => [
+        'table' => 'payment_status_item',
+        'columns' => ['psiid' => 'psiid'],
+      ]
+    ],
+  ]);
+}
+
+/**
+ * Remove unneeded {payone_payment_controller_data} table.
+ */
+function payone_payment_update_7101() {
+  db_drop_table('payone_payment_controller_data');
 }

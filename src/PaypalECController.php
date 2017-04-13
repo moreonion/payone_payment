@@ -38,13 +38,6 @@ class PaypalECController extends ControllerBase {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  function validate(\Payment $payment, \PaymentMethod $payment_method, $strict) {
-    parent::validate($payment, $payment_method, $strict);
-  }
-
-  /**
    * Generate the return URLs.
    *
    * @param int $pid
@@ -86,6 +79,7 @@ class PaypalECController extends ControllerBase {
       $response = $api->wltAuthorizationRequest($data);
       $payment->setStatus(new \PaymentStatusItem(Statuses::REDIRECTED));
       entity_save('payment', $payment);
+      $this->setTxid($payment, $response['txid']);
       $context->redirect($response['redirecturl']);
     }
     catch (HttpError $e) {

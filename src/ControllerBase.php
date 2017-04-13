@@ -56,5 +56,24 @@ abstract class ControllerBase extends \PaymentMethodController {
     return $payment->pid . '-' . $status->psiid;
   }
 
+  /**
+   * Set the transaction ID for the current status item.
+   *
+   * There is currently no prettier way to attach additional data to payment
+   * status items. See https://www.drupal.org/node/2867820 for more information.
+   *
+   * @param \Payment $payment
+   *   The payment object.
+   * @param int|null $txid
+   *   A transaction ID if there is one.
+   */
+  protected function setTxid(\Payment $payment, $txid) {
+    $status_item = $payment->getStatus();
+    if (!$status_item->psiid) {
+      entity_save('payment', $payment);
+    }
+    Transaction::create($status_item->psiid, $txid)->save();
+  }
+
 }
 
