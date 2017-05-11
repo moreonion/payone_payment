@@ -7,6 +7,17 @@ class CreditCardController extends ControllerBase {
 
   public function __construct() {
     $this->title = t('PayONE Credit Card');
+    $k = array_keys(CreditCardForm::$issuers);
+    $this->controller_data_defaults += [
+      'issuers' => array_combine($k, $k),
+    ];
+  }
+
+  /**
+   * Get a new method configuration form object.
+   */
+  public function configurationForm(\PaymentMethod $method) {
+    return new CreditCardConfigurationForm();
   }
 
   public function paymentForm(\Payment $payment) {

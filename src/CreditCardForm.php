@@ -12,7 +12,7 @@ class CreditCardForm extends _CreditCardForm {
 
   const AJAX_JS = 'https://secure.pay1.de/client-api/js/ajax.js';
 
-  static protected $issuers = array(
+  static public $issuers = array(
     'V' => 'Visa',
     'M' => 'MasterCard',
     'A' => 'American Express',
@@ -31,6 +31,15 @@ class CreditCardForm extends _CreditCardForm {
 
   public function form(array $form, array &$form_state, \Payment $payment) {
     $form = parent::form($form, $form_state, $payment);
+
+    // Limit the available issuers to those enabled in the admin interface.
+    $options = [];
+    foreach ($payment->method->controller_data['issuers'] as $i => $enabled) {
+      if ($enabled && isset(static::$issuers[$i])) {
+        $options[$i] = static::$issuers[$i];
+      }
+    }
+    $form['issuer']['#options'] = $options;
 
     $form['holder'] = [
       '#type' => 'textfield',
