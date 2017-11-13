@@ -75,5 +75,41 @@ abstract class ControllerBase extends \PaymentMethodController {
     Transaction::create($status_item->psiid, $txid)->save();
   }
 
+  /**
+   * Sign method and payment ID.
+   *
+   * This has to be a static method as it is called from menu access callbacks.
+   *
+   * @param string $method
+   *   A name for this method.
+   * @param int $pid
+   *   The payment ID.
+   *
+   * @return string
+   *   Base-64 encoded key.
+   */
+  public static function sign($method, $pid) {
+    return drupal_hmac_base64("$method:$pid", drupal_get_private_key());
+  }
+
+  /**
+   * Generate the return URLs.
+   *
+   * @param int $pid
+   *   The payment ID.
+   *
+   * @return string[]
+   *   The three return URLs needed for e-wallet payments.
+   */
+  protected function getUrls($pid) {
+    $o['absolute'] = TRUE;
+    $urls = [];
+    foreach (['success', 'error', 'back'] as $m) {
+      $hash = self::sign($m, $pid);
+      $urls[$m . 'url'] = url("payone-payment/$m/{$pid}/$hash", $o);
+    }
+    return $urls;
+  }
+
 }
 

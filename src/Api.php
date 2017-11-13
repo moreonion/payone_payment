@@ -141,7 +141,7 @@ class Api {
   public function ccAuthorizationRequest($data) {
     $response = $this->serverRequest('authorization', $data);
 
-    if ($response['status'] == 'APPROVED') {
+    if (in_array($response['status'], ['APPROVED', 'REDIRECT'])) {
       return $response;
     }
     else {
@@ -233,7 +233,6 @@ class Api {
         }
       }
     }
-
     return hash_hmac('sha384', $hash_string, $this->key);
   }
 
