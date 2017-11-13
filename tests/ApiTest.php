@@ -81,4 +81,30 @@ class ApiTest extends \DrupalUnitTestCase {
     $api->ccAuthorizationRequest(['pseudocardpan' => '4711']);
   }
 
+  /**
+   * Test the HMAC example from the docs.
+   */
+  public function testHmacSigning() {
+    $api = new Api(10001, 2000001, 'secret', 10002, TRUE);
+    $data = [
+      'request' => "authorization",
+      'portalid' => 2000001,
+      'mid' => 10001,
+      'aid' => 10002,
+      'key' => "secret",
+      'responsetype' => "REDIRECT",
+      'id' => [1 => "123-345"],
+      'pr' => [1 => 5900],
+      'no' => [1 => 1],
+      'de' => [1 => "Puma Outdoor"],
+      'va' => [1 => 19],
+      'currency' => "EUR",
+      'reference' => "73464354",
+      'customerid' => "123456",
+    ];
+    $data['amount'] = round($data['pr'][1] * $data['no'][1]);
+    $correct_hash = '9483269a96a513e8ed3a61fe3090955703a38d747d29eff5ca43efc4a2990b191f79fdbd1e52a659e6bbb77ff9b6dd7b';
+    $this->assertEqual($correct_hash, $api->hmacSign($data));
+  }
+
 }

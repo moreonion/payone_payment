@@ -216,7 +216,7 @@ class Api {
     return drupal_http_request($url, $options);
   }
 
-  protected function hmacSign($data) {
+  public function hmacSign($data) {
     $hash_string = '';
 
     foreach (self::HASH_KEYS as $k) {
