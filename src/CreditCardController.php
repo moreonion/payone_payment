@@ -31,22 +31,38 @@ class CreditCardController extends ControllerBase {
     $context = &$payment->contextObj;
 
     $currency = currency_load($payment->currency_code);
+    $urls = $this->getUrls($payment->pid);
+    unset($urls['backurl']);
     $data = [
       'clearingtype' => 'cc',
       'reference' => $this->generateReference($payment),
       'amount' => (int) ($payment->totalAmount(TRUE) * $currency->subunits),
       'currency' => $payment->currency_code,
       'pseudocardpan' => $payment->method_data['payone_pseudocardpan'],
-    ] + $payment->method_data['personal_data'];
+    ] + $urls + $payment->method_data['personal_data'];
 
     try {
-      // These other keys are defined in $response:
-      // - status: 'APPROVED'
-      // - txid: The payone transaction id.
-      // - userid: The payone user id.
       $response = $api->ccAuthorizationRequest($data);
-      $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
-      $this->setTxid($payment, $response['txid']);
+      switch ($response['status']) {
+        case 'APPROVED':
+          // These other keys are defined in $response:
+          // - status: 'APPROVED'
+          // - txid: The payone transaction id.
+          // - userid: The payone user id.
+          $payment->setStatus(new \PaymentStatusItem(PAYMENT_STATUS_SUCCESS));
+          $this->setTxid($payment, $response['txid']);
+          break;
+        case 'REDIRECT':
+          // These other keys are defined in $response:
+          // - status: 'REDIRECT'
+          // - txid: The payone transaction id.
+          // - userid: The payone user id.
+          // - redirecturl: The URL to redirect the user to.
+          $payment->setStatus(new \PaymentStatusItem(Statuses::REDIRECTED));
+          $this->setTxid($payment, $response['txid']);
+          $context->redirect($response['redirecturl']);
+          break;
+      }
     }
     catch (HttpError $e) {
       // TODO: Maybe retry here a few seconds later?

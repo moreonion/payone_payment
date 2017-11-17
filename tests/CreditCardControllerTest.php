@@ -66,7 +66,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     ];
     $api->expects($this->once())
       ->method('ccAuthorizationRequest')
-      ->with($this->equalTo($expected))
+      ->with(new \PHPUnit_Framework_Constraint_ArraySubset($expected))
       ->will($this->returnValue(['status' => 'APPROVED', 'txid' => 42]));
     $controller->execute($p, $api);
 

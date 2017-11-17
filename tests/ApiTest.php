@@ -57,6 +57,28 @@ class ApiTest extends \DrupalUnitTestCase {
     $api->ccAuthorizationRequest(['pseudocardpan' => '4711']);
   }
 
+  /**
+   * Test ccAuthorizationRequest with a redirect answer.
+   */
+  public function testCcAuthorizationRequestRedirect() {
+    $api = $this->stubApi();
+    $r = (object) [
+      'code' => 200,
+      'data' => 'status=REDIRECT',
+    ];
+    $expected_post_options = [
+      'method' => 'POST',
+      'data' => 'request=authorization&responsetype=JSON&mode=test&mid=1&aid=1&portalid=1&encoding=UTF-8&key=912ec803b2ce49e4a541068d495ab570&pseudocardpan=4711',
+      'headers' => [
+        'Content-Type' => 'application/x-www-form-urlencoded',
+      ],
+    ];
+    $api->expects($this->once())->method('post')
+      ->with($this->equalTo('https://api.pay1.de/post-gateway/'), $this->equalTo($expected_post_options))
+      ->will($this->returnValue($r));
+    $api->ccAuthorizationRequest(['pseudocardpan' => '4711']);
+  }
+
   public function test_serverRequest_HttpError() {
     $api = $this->stubApi();
     $r = (object) [
