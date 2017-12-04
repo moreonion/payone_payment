@@ -46,6 +46,9 @@ abstract class ControllerBase extends \PaymentMethodController {
 
   /**
    * Generate a unique ID for this payment attempt.
+   *
+   * @return string
+   *   String of up to 20 chars in length. [0-9a-zA-Z.-_/]
    */
   public function generateReference(\Payment $payment) {
     // If needed save the payment to get actual Ids.
@@ -53,7 +56,12 @@ abstract class ControllerBase extends \PaymentMethodController {
       entity_save('payment', $payment);
     }
     $status = $payment->getStatus();
-    return $payment->pid . '-' . $status->psiid;
+    $reference = "{$payment->pid}.{$status->psiid}";
+    $hash = drupal_hash_base64("$reference.{$status->created}");
+    // Pad the reference with a hash value to make it more unique. The status
+    // and payment IDs might overlap between staging and live setups. Duplicate
+    // references lead to payment errors.
+    return $reference . '.' . substr($hash, 0, 20 - strlen($reference) - 1);
   }
 
   /**
