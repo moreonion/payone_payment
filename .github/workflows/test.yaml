@@ -51,7 +51,7 @@ jobs:
         ln -s $REPO $ROOT/sites/all/modules/module_under_test
         cd $ROOT
         curl https://www.drupal.org/files/issues/1891356-drupal_static_reset-on-module-changes-30-D7.patch | patch -p1
-        drush --yes pm-enable payone_payment
+        drush --yes pm-enable campaignion payone_payment
     - name: Run phpunit tests
       run: UPAL_ROOT=$ROOT UPAL_WEB_URL=http://127.0.0.1 XDEBUG_MODE=coverage phpunit --bootstrap=$COMPOSER_HOME/vendor/torotil/upal/bootstrap.php --coverage-clover=coverage.xml .
     - uses: codecov/codecov-action@v1
