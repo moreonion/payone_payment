@@ -57,7 +57,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     list($controller, $api) = $this->mockController();
     $expected = [
       'clearingtype' => 'cc',
-      'reference' => $p->pid . '-12',
+      'reference' => $controller->generateReference($p),
       'amount' => 4200,
       'currency' => 'EUR',
       'pseudocardpan' => '123456789',
