@@ -57,7 +57,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     list($controller, $api) = $this->mockController();
     $expected = [
       'clearingtype' => 'cc',
-      'reference' => $p->pid . '-12',
+      'reference' => $controller->generateReference($p),
       'amount' => 4200,
       'currency' => 'EUR',
       'pseudocardpan' => '123456789',
@@ -66,7 +66,7 @@ class CreditCardControllerTest extends \DrupalUnitTestCase {
     ];
     $api->expects($this->once())
       ->method('ccAuthorizationRequest')
-      ->with(new \PHPUnit_Framework_Constraint_ArraySubset($expected))
+      ->with(new \PHPUnit\Framework\Constraint\ArraySubset($expected))
       ->will($this->returnValue(['status' => 'APPROVED', 'txid' => 42]));
     $controller->execute($p, $api);
 
