@@ -100,3 +100,12 @@ function payone_payment_payment_delete(\Payment $payment) {
   }, $payment->statuses);
   Transaction::deleteIds($psiids);
 }
+
+/**
+ * Implements hook_d7csp_hosts().
+ */
+function payone_payment_d7csp_hosts() {
+  $hosts['connect-src'][] = 'https://secure.pay1.de';
+  $hosts['script-src'][] = 'https://secure.pay1.de';
+  return $hosts;
+}
